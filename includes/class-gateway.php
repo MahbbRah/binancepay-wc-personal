@@ -42,6 +42,18 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Initialize Gateway settings cache from BPP_Settings.
+	 *
+	 * @return void
+	 */
+	public function init_settings(): void {
+		parent::init_settings();
+		if ( class_exists( 'BPP_Settings' ) ) {
+			$this->settings = BPP_Settings::get_all( true );
+		}
+	}
+
+	/**
 	 * Initialize Gateway settings form fields in WooCommerce admin.
 	 *
 	 * @return void
@@ -100,10 +112,10 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 			'payment_config_heading' => array(
 				'title'       => __( 'Payment Configuration', 'binance-personal-pay' ),
 				'type'        => 'title',
-				'description' => __( 'Configure payment matching rules and timeout.', 'binance-personal-pay' ),
+				'description' => __( 'Configure payment matching rules and timeout. Binance Pay strictly operates with USD currency orders.', 'binance-personal-pay' ),
 			),
 			'currency' => array(
-				'title'       => __( 'Accepted Currency', 'binance-personal-pay' ),
+				'title'       => __( 'Accepted Crypto Currency', 'binance-personal-pay' ),
 				'type'        => 'select',
 				'description' => __( 'Cryptocurrency for checkout. In v0.1, USDT is fully supported.', 'binance-personal-pay' ),
 				'default'     => 'USDT',
@@ -189,16 +201,32 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Render custom Test Connection button inside WooCommerce settings table.
+	 *
+	 * @param string $key Field key.
+	 * @param array  $data Field config.
+	 * @return string
+	 */
+	public function generate_bpp_test_connection_btn_html( $key, $data ): string {
+		ob_start();
+		if ( class_exists( 'BPP_Admin' ) ) {
+			BPP_Admin::render_test_connection_field( $data );
+		}
+		return ob_get_clean();
+	}
+
+	/**
 	 * Save admin options while keeping API secret secure if unmodified.
 	 *
 	 * @return bool
 	 */
 	public function process_admin_options(): bool {
 		$post_data = $this->get_post_data();
-		$saved     = BPP_Settings::save_settings( $post_data );
+		BPP_Settings::save_settings( $post_data );
 
 		// Update gateway settings cache.
 		$this->init_settings();
+		$this->enabled = $this->get_option( 'enabled', 'no' );
 
 		// Reschedule scanner if auto-scan setting or interval changed.
 		if ( BPP_Settings::is_auto_scan_enabled() ) {
@@ -208,6 +236,23 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Get current active currency on the storefront.
+	 * Checks WOOCS global if active, otherwise falls back to WooCommerce currency.
+	 *
+	 * @return string
+	 */
+	public static function get_current_currency(): string {
+		global $WOOCS;
+		if ( ! empty( $WOOCS ) && ! empty( $WOOCS->current_currency ) ) {
+			return strtoupper( trim( $WOOCS->current_currency ) );
+		}
+		if ( function_exists( 'get_woocommerce_currency' ) ) {
+			return strtoupper( trim( get_woocommerce_currency() ) );
+		}
+		return 'USD';
 	}
 
 	/**
@@ -221,9 +266,8 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 			return false;
 		}
 
-		// Ensure store/checkout currency is USD.
-		$current_currency = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'USD';
-		if ( 'USD' !== strtoupper( $current_currency ) ) {
+		// Gateway strictly operates with USD currency.
+		if ( 'USD' !== self::get_current_currency() ) {
 			return false;
 		}
 
@@ -248,7 +292,7 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 	public function process_payment( $order_id ): array {
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order ) {
+		if ( ! order_exists_or_valid( $order ) ) {
 			return array(
 				'result'   => 'fail',
 				'redirect' => '',
@@ -257,7 +301,9 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 
 		// Enforce USD order currency.
 		if ( 'USD' !== strtoupper( $order->get_currency() ) ) {
-			wc_add_notice( __( 'Binance Pay is only available for orders placed in USD currency.', 'binance-personal-pay' ), 'error' );
+			if ( function_exists( 'wc_add_notice' ) ) {
+				wc_add_notice( __( 'Binance Pay is only available for orders placed in USD currency.', 'binance-personal-pay' ), 'error' );
+			}
 			return array(
 				'result'   => 'fail',
 				'redirect' => '',
@@ -271,7 +317,9 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 		$order->update_status( 'pending', __( 'Awaiting Binance Pay payment confirmation.', 'binance-personal-pay' ) );
 
 		// Empty cart.
-		WC()->cart->empty_cart();
+		if ( function_exists( 'WC' ) && WC()->cart ) {
+			WC()->cart->empty_cart();
+		}
 
 		// Dedicated customer payment page URL.
 		$payment_page_url = BPP_Payment_Page::get_payment_url( $order );
@@ -281,4 +329,14 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 			'redirect' => $payment_page_url,
 		);
 	}
+}
+
+/**
+ * Helper to validate order object in both test mock and WC environments.
+ *
+ * @param mixed $order Order instance.
+ * @return bool
+ */
+function order_exists_or_valid( mixed $order ): bool {
+	return ! empty( $order ) && ( ( is_object( $order ) && method_exists( $order, 'get_id' ) ) || $order instanceof WC_Order );
 }

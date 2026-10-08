@@ -207,39 +207,130 @@ class BPP_Settings {
 
 	/**
 	 * Sanitize and save settings array.
+	 * Supports both prefixed (woocommerce_binance_pay_*) and unprefixed keys.
 	 *
 	 * @param array $input Raw form data.
 	 * @return array Sanitized settings.
 	 */
 	public static function save_settings( array $input ): array {
 		$existing = self::get_all();
+		$defaults = self::get_defaults();
 		$clean    = array();
+		$prefix   = 'woocommerce_binance_pay_';
 
-		$clean['enabled']                  = isset( $input['enabled'] ) && 'yes' === $input['enabled'] ? 'yes' : 'no';
-		$clean['title']                    = sanitize_text_field( $input['title'] ?? __( 'Binance Pay', 'binance-personal-pay' ) );
-		$clean['description']              = sanitize_textarea_field( $input['description'] ?? __( 'Pay directly using Binance.', 'binance-personal-pay' ) );
-		$clean['api_key']                  = sanitize_text_field( trim( $input['api_key'] ?? '' ) );
+		// Determine if this is a WooCommerce HTML settings form submission.
+		$is_form_submission = false;
+		foreach ( array_keys( $input ) as $k ) {
+			if ( str_starts_with( (string) $k, $prefix ) ) {
+				$is_form_submission = true;
+				break;
+			}
+		}
 
-		// Only overwrite api_secret if a non-empty, non-masked value was provided.
-		$new_secret = trim( (string) ( $input['api_secret'] ?? '' ) );
-		if ( '' !== $new_secret && ! str_contains( $new_secret, '•' ) ) {
-			$clean['api_secret'] = sanitize_text_field( $new_secret );
+		$has = function( string $key ) use ( $input, $prefix ): bool {
+			return array_key_exists( $prefix . $key, $input ) || array_key_exists( $key, $input );
+		};
+
+		$get = function( string $key, mixed $default = null ) use ( $input, $prefix ): mixed {
+			if ( array_key_exists( $prefix . $key, $input ) ) {
+				return $input[ $prefix . $key ];
+			}
+			if ( array_key_exists( $key, $input ) ) {
+				return $input[ $key ];
+			}
+			return $default;
+		};
+
+		// Helper to sanitize checkboxes.
+		// In HTML forms, unchecked checkboxes are omitted from POST data.
+		$sanitize_checkbox = function( string $key, string $default_val ) use ( $has, $get, $is_form_submission, $existing ): string {
+			if ( $has( $key ) ) {
+				$val = $get( $key );
+				return ( 'yes' === $val || '1' === $val || 1 === $val || 'on' === $val ) ? 'yes' : 'no';
+			}
+			if ( $is_form_submission ) {
+				// Form was submitted but checkbox was omitted -> unchecked.
+				return 'no';
+			}
+			// Programmatic partial update -> keep existing value.
+			return $existing[ $key ] ?? $default_val;
+		};
+
+		$clean['enabled'] = $sanitize_checkbox( 'enabled', 'no' );
+
+		// Text & Textarea fields.
+		if ( $has( 'title' ) ) {
+			$clean['title'] = sanitize_text_field( $get( 'title', $defaults['title'] ) );
+		} else {
+			$clean['title'] = $existing['title'] ?? $defaults['title'];
+		}
+
+		if ( $has( 'description' ) ) {
+			$clean['description'] = sanitize_textarea_field( $get( 'description', $defaults['description'] ) );
+		} else {
+			$clean['description'] = $existing['description'] ?? $defaults['description'];
+		}
+
+		if ( $has( 'api_key' ) ) {
+			$clean['api_key'] = sanitize_text_field( trim( (string) $get( 'api_key', '' ) ) );
+		} else {
+			$clean['api_key'] = $existing['api_key'] ?? '';
+		}
+
+		// API Secret: Only overwrite if a non-empty, non-masked value was provided.
+		if ( $has( 'api_secret' ) ) {
+			$new_secret = trim( (string) $get( 'api_secret', '' ) );
+			if ( '' !== $new_secret && ! str_contains( $new_secret, '•' ) ) {
+				$clean['api_secret'] = sanitize_text_field( $new_secret );
+			} else {
+				$clean['api_secret'] = $existing['api_secret'] ?? '';
+			}
 		} else {
 			$clean['api_secret'] = $existing['api_secret'] ?? '';
 		}
 
-		$clean['merchant_binance_id']      = sanitize_text_field( trim( $input['merchant_binance_id'] ?? '' ) );
-		$clean['currency']                 = sanitize_text_field( strtoupper( trim( $input['currency'] ?? 'USDT' ) ) );
-		$clean['payment_timeout']          = max( 1, absint( $input['payment_timeout'] ?? 10 ) );
-		$clean['timeout_action']           = in_array( $input['timeout_action'] ?? '', array( 'keep_pending', 'mark_failed', 'cancel_order' ), true )
-			? $input['timeout_action']
-			: 'keep_pending';
-		$clean['enable_auto_scan']         = isset( $input['enable_auto_scan'] ) && 'yes' === $input['enable_auto_scan'] ? 'yes' : 'no';
-		$clean['enable_manual_verify']     = isset( $input['enable_manual_verify'] ) && 'yes' === $input['enable_manual_verify'] ? 'yes' : 'no';
-		$clean['scanner_interval']         = max( 30, absint( $input['scanner_interval'] ?? 60 ) );
-		$clean['lookback_minutes']         = max( 5, absint( $input['lookback_minutes'] ?? 15 ) );
-		$clean['delete_data_on_uninstall'] = isset( $input['delete_data_on_uninstall'] ) && 'yes' === $input['delete_data_on_uninstall'] ? 'yes' : 'no';
-		$clean['debug_log']                = isset( $input['debug_log'] ) && 'yes' === $input['debug_log'] ? 'yes' : 'no';
+		if ( $has( 'merchant_binance_id' ) ) {
+			$clean['merchant_binance_id'] = sanitize_text_field( trim( (string) $get( 'merchant_binance_id', '' ) ) );
+		} else {
+			$clean['merchant_binance_id'] = $existing['merchant_binance_id'] ?? '';
+		}
+
+		if ( $has( 'currency' ) ) {
+			$clean['currency'] = sanitize_text_field( strtoupper( trim( (string) $get( 'currency', 'USDT' ) ) ) );
+		} else {
+			$clean['currency'] = $existing['currency'] ?? 'USDT';
+		}
+
+		if ( $has( 'payment_timeout' ) ) {
+			$clean['payment_timeout'] = max( 1, absint( $get( 'payment_timeout', 10 ) ) );
+		} else {
+			$clean['payment_timeout'] = (int) ( $existing['payment_timeout'] ?? 10 );
+		}
+
+		if ( $has( 'timeout_action' ) ) {
+			$timeout_act             = $get( 'timeout_action', 'keep_pending' );
+			$clean['timeout_action'] = in_array( $timeout_act, array( 'keep_pending', 'mark_failed', 'cancel_order' ), true ) ? $timeout_act : 'keep_pending';
+		} else {
+			$clean['timeout_action'] = $existing['timeout_action'] ?? 'keep_pending';
+		}
+
+		$clean['enable_auto_scan']     = $sanitize_checkbox( 'enable_auto_scan', 'yes' );
+		$clean['enable_manual_verify'] = $sanitize_checkbox( 'enable_manual_verify', 'yes' );
+
+		if ( $has( 'scanner_interval' ) ) {
+			$clean['scanner_interval'] = max( 30, absint( $get( 'scanner_interval', 60 ) ) );
+		} else {
+			$clean['scanner_interval'] = (int) ( $existing['scanner_interval'] ?? 60 );
+		}
+
+		if ( $has( 'lookback_minutes' ) ) {
+			$clean['lookback_minutes'] = max( 5, absint( $get( 'lookback_minutes', 15 ) ) );
+		} else {
+			$clean['lookback_minutes'] = (int) ( $existing['lookback_minutes'] ?? 15 );
+		}
+
+		$clean['delete_data_on_uninstall'] = $sanitize_checkbox( 'delete_data_on_uninstall', 'no' );
+		$clean['debug_log']                = $sanitize_checkbox( 'debug_log', 'yes' );
 
 		update_option( self::OPTION_NAME, $clean );
 		self::$settings = $clean;

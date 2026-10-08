@@ -16,8 +16,14 @@ require_once __DIR__ . '/test-binance-api.php';
 require_once __DIR__ . '/test-order-handler.php';
 require_once __DIR__ . '/test-payment-matcher.php';
 require_once __DIR__ . '/test-logger.php';
+require_once __DIR__ . '/test-settings.php';
 
 $test_functions = array(
+	// Settings tests
+	'test_settings_save_with_prefixed_post_keys',
+	'test_settings_preserve_secret_when_masked_or_empty',
+	'test_settings_checkbox_omitted_on_form_submission',
+
 	// Money tests
 	'test_money_normalization',
 	'test_money_equality',

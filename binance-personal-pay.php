@@ -47,6 +47,20 @@ if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
 }
 
 /**
+ * Declare HPOS and Cart/Checkout Blocks compatibility.
+ * Must run before woocommerce_init.
+ */
+add_action(
+	'before_woocommerce_init',
+	function () {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', BPP_PLUGIN_FILE, true );
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', BPP_PLUGIN_FILE, true );
+		}
+	}
+);
+
+/**
  * Initialize the plugin after all plugins are loaded.
  *
  * @return void
@@ -72,6 +86,11 @@ function bpp_init_plugin(): void {
 
 	// Bootstrap plugin.
 	BPP_Plugin::instance()->init();
+
+	// Fallback if blocks were already loaded before plugins_loaded.
+	if ( did_action( 'woocommerce_blocks_loaded' ) ) {
+		bpp_register_blocks_support();
+	}
 }
 add_action( 'plugins_loaded', 'bpp_init_plugin' );
 
@@ -79,3 +98,62 @@ add_action( 'plugins_loaded', 'bpp_init_plugin' );
 require_once BPP_PLUGIN_DIR . 'includes/class-plugin.php';
 register_activation_hook( __FILE__, array( 'BPP_Plugin', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'BPP_Plugin', 'deactivate' ) );
+
+/**
+ * Register WooCommerce Blocks checkout support.
+ *
+ * @return void
+ */
+function bpp_register_blocks_support(): void {
+	static $registered = false;
+	if ( $registered ) {
+		return;
+	}
+
+	if ( ! class_exists( '\Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
+		return;
+	}
+
+	$registered = true;
+	require_once BPP_PLUGIN_DIR . 'includes/class-block.php';
+
+	add_action(
+		'woocommerce_blocks_payment_method_type_registration',
+		function( \Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+			$payment_method_registry->register( new BPP_Gateway_Blocks() );
+		}
+	);
+}
+add_action( 'woocommerce_blocks_loaded', 'bpp_register_blocks_support' );
+
+/**
+ * Enforce USD currency: hide binance_pay on checkout when currency is not USD.
+ */
+add_filter(
+	'woocommerce_available_payment_gateways',
+	function ( $gateways ) {
+		if ( isset( $gateways['binance_pay'] ) ) {
+			if ( class_exists( 'WC_Gateway_Binance_Personal_Pay' ) && 'USD' !== WC_Gateway_Binance_Personal_Pay::get_current_currency() ) {
+				unset( $gateways['binance_pay'] );
+			}
+		}
+		return $gateways;
+	},
+	50
+);
+
+/**
+ * Gateway icon filter for standard checkout rendering.
+ */
+add_filter(
+	'woocommerce_gateway_icon',
+	function ( $icon, $gateway_id ) {
+		if ( 'binance_pay' === $gateway_id ) {
+			$icon_url = BPP_PLUGIN_URL . 'frontend/images/binance-pay.svg';
+			$icon     = '<img src="' . esc_url( $icon_url ) . '" alt="Binance Pay" style="height:22px; width:auto; margin-left:8px; vertical-align:middle;">';
+		}
+		return $icon;
+	},
+	10,
+	2
+);
