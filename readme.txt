@@ -1,4 +1,4 @@
-=== Binance Personal Pay for WooCommerce ===
+=== Personal Payment Gateway for Binance on WooCommerce ===
 Contributors: opensource
 Tags: woocommerce, binance, binance pay, crypto, payment gateway, usdt, p2p
 Requires at least: 6.0
@@ -12,14 +12,14 @@ Accept Binance Pay payments directly into your personal Binance account — No m
 
 == Description ==
 
-**Binance Personal Pay for WooCommerce** turns your personal Binance account into an automated, zero-fee crypto payment gateway.
+**Personal Payment Gateway for Binance on WooCommerce** turns your personal Binance account into an automated, zero-fee crypto payment gateway for WooCommerce.
 
 ### The Problem
 * **The Merchant Wall:** Official Binance Pay Merchant accounts require registered corporations, business licenses, bank accounts, and lengthy compliance reviews that exclude solo entrepreneurs and freelancers.
 * **The Manual Screenshot Nightmare:** Store owners asking customers to email screenshots of payments end up wasting hours verifying transactions, suffering fraud from forged receipts, and causing delayed orders.
 * **Third-Party Fees:** Gateways like CoinGate and NOWPayments charge 1%–3%+ transaction fees and hold your funds in custodial wallets.
 
-### The Solution: Binance Personal Pay
+### The Solution: Personal Payment Gateway for Binance
 * **Personal Binance Accounts:** Accept payments directly to your personal Binance User ID (UID / Pay ID).
 * **0% Middleman Fees:** Funds settle immediately into your personal Binance wallet peer-to-peer.
 * **Automated Order Processing:** The plugin queries your Binance Pay transaction history via Binance's official SAPI read-only endpoint (`GET /sapi/v1/pay/transactions`) and marks orders paid automatically.
@@ -31,7 +31,7 @@ Accept Binance Pay payments directly into your personal Binance account — No m
 
 == Installation ==
 
-1. Upload the `binance-personal-pay` folder to `/wp-content/plugins/` or install via the WordPress Plugins menu.
+1. Upload the `personal-payment-gateway-for-binance` folder to `/wp-content/plugins/` or install via the WordPress Plugins menu.
 2. Activate the plugin through the **Plugins** screen in WordPress.
 3. Navigate to **WooCommerce > Settings > Payments > Binance Pay**.
 4. Enter your personal Binance **API Key**, **API Secret**, and **Binance ID**. (Ensure your API Key has ONLY Read-Only permissions).

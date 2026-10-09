@@ -7,7 +7,7 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="${DIR}/dist"
-PLUGIN_SLUG="binance-personal-pay"
+PLUGIN_SLUG="personal-payment-gateway-for-binance"
 TMP_DIR="${DIST_DIR}/${PLUGIN_SLUG}"
 ZIP_NAME="${PLUGIN_SLUG}.zip"
 
@@ -37,6 +37,11 @@ find "${TMP_DIR}" -name "*.log" -delete
 # Create ZIP archive
 cd "${DIST_DIR}"
 zip -r -q "${ZIP_NAME}" "${PLUGIN_SLUG}"
+
+# Also keep binance-personal-pay.zip copy for legacy script compatibility
+cp "${ZIP_NAME}" "binance-personal-pay.zip"
+
 rm -rf "${TMP_DIR}"
 
 echo "✓ Release build complete: ${DIST_DIR}/${ZIP_NAME}"
+echo "✓ Compatibility build: ${DIST_DIR}/binance-personal-pay.zip"

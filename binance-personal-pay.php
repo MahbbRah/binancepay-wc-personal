@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Binance Personal Pay for WooCommerce
+ * Plugin Name: Personal Payment Gateway for Binance on WooCommerce
  * Plugin URI: https://github.com/open-source/woocommerce-binance-personal-pay
- * Description: Accept Binance Pay payments directly into your personal Binance account with automated transaction verification and zero middleman fees.
+ * Description: Accept Binance Pay crypto payments directly into your personal Binance account on WooCommerce with automated transaction verification and zero middleman fees.
  * Version: 0.1.0
  * Author: Open Source Community
  * Author URI: https://github.com/open-source/woocommerce-binance-personal-pay

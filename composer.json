@@ -1,6 +1,6 @@
 {
   "name": "open-source/woocommerce-binance-personal-pay",
-  "description": "Accept Binance Pay payments directly into your personal Binance account for WooCommerce.",
+  "description": "Personal Payment Gateway for Binance on WooCommerce - Accept Binance Pay payments directly into your personal Binance account.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "authors": [

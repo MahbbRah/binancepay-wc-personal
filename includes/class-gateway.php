@@ -26,8 +26,8 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 		$this->id                 = self::GATEWAY_ID;
 		$this->icon               = apply_filters( 'bpp_gateway_icon', '' );
 		$this->has_fields         = false;
-		$this->method_title       = __( 'Binance Personal Pay', 'binance-personal-pay' );
-		$this->method_description = __( 'Accept Binance Pay payments directly into your personal Binance account without merchant verification.', 'binance-personal-pay' );
+		$this->method_title       = __( 'Personal Payment Gateway for Binance', 'binance-personal-pay' );
+		$this->method_description = __( 'Accept Binance Pay payments directly into your personal Binance account on WooCommerce without a merchant account.', 'binance-personal-pay' );
 		$this->supports           = array( 'products' );
 
 		// Load form fields and settings.

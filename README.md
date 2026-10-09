@@ -1,4 +1,4 @@
-# Binance Personal Pay for WooCommerce
+# Personal Payment Gateway for Binance on WooCommerce
 
 Accept Binance Pay directly into your **personal Binance account**. No corporate registration. No merchant approval. No middleman fees. Fully automated order completion.
 
@@ -90,7 +90,7 @@ If a customer forgot to enter the payment note (`plan-{order_id}`) when sending 
 ## 5-Minute Setup
 
 ### 1. Install Plugin
-Upload the `binance-personal-pay` folder to `/wp-content/plugins/` (or install via the zip in Releases) and activate it in WordPress Plugins.
+Upload the `personal-payment-gateway-for-binance` folder to `/wp-content/plugins/` (or install via the zip in Releases) and activate it in WordPress Plugins.
 
 ### 2. Create a Read-Only API Key in Binance
 1. Log in to [Binance.com](https://www.binance.com/).
