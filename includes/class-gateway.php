@@ -209,9 +209,10 @@ class WC_Gateway_Binance_Personal_Pay extends WC_Payment_Gateway {
 	 */
 	public function generate_bpp_test_connection_btn_html( $key, $data ): string {
 		ob_start();
-		if ( class_exists( 'BPP_Admin' ) ) {
-			BPP_Admin::render_test_connection_field( $data );
+		if ( ! class_exists( 'BPP_Admin' ) ) {
+			require_once BPP_PLUGIN_DIR . 'admin/class-admin.php';
 		}
+		BPP_Admin::render_test_connection_field( $data );
 		return ob_get_clean();
 	}
 
