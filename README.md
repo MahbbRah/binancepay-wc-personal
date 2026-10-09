@@ -49,15 +49,15 @@ Customers pay straight to your Binance ID using a short reference note (`plan-{o
 
 ```mermaid
 flowchart TD
-    A[Customer on Checkout] -->|Selects Binance Pay| B[Pending Order Created]
-    B --> C[Payment Screen: Shows Amount, Binance ID & Note: plan-{order_id}]
-    C -->|Customer sends payment in Binance App| D[Payment hits your Binance account]
-    D --> E{Verification Layer}
-    E -->|Background Scanner every 60s| F[Query Binance SAPI]
-    E -->|Customer clicks 'I've Completed Payment'| F
-    E -->|Customer enters Binance Order ID fallback| F
-    F --> G{Checks: Amount, Currency, Receiver UID, Note, Window, Uniqueness}
-    G -->|Valid| H[Order Completed via payment_complete]
+    A["Customer on Checkout"] -->|"Selects Binance Pay"| B["Pending Order Created"]
+    B --> C["Payment Screen: Shows Amount, Binance ID & Note: plan-{order_id}"]
+    C -->|"Customer sends payment in Binance App"| D["Payment hits your Binance account"]
+    D --> E{"Verification Layer"}
+    E -->|"Background Scanner (every ~60s)"| F["Query Binance SAPI"]
+    E -->|"Customer clicks I've Completed Payment"| F
+    E -->|"Customer enters Binance Order ID fallback"| F
+    F --> G{"Validation: Amount, Currency, Receiver UID, Note, Window, Uniqueness"}
+    G -->|"Valid"| H["Order Completed via payment_complete()"]
 ```
 
 The plugin uses three verification methods so payments are never lost:
